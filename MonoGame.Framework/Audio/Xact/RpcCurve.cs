@@ -4,7 +4,7 @@
 
 namespace Microsoft.Xna.Framework.Audio
 {
-    struct RpcCurve
+    public struct RpcCurve
     {
         public uint FileOffset;
         public int Variable;

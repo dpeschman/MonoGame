@@ -4,7 +4,7 @@
 
 namespace Microsoft.Xna.Framework.Audio
 {
-    enum FilterMode
+    public enum FilterMode
     {
         LowPass = 0,
         BandPass = 1,

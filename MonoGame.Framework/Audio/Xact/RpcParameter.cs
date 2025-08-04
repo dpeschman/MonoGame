@@ -4,7 +4,7 @@
 
 namespace Microsoft.Xna.Framework.Audio
 {
-    enum RpcParameter
+    public enum RpcParameter
     {
         Volume,
         Pitch,

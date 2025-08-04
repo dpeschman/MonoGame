@@ -8,19 +8,19 @@ namespace Microsoft.Xna.Framework.Audio
 {
     /// <summary>Represents a single instance of a playing, paused, or stopped sound.</summary>
     /// <remarks>
-    /// <para>SoundEffectInstances are created through SoundEffect.CreateInstance() and used internally by SoundEffect.Play()</para>
+    /// <para>SoundEffectInstances are created through SoundEffect.CreateInstance() and used publicly by SoundEffect.Play()</para>
     /// </remarks>
     public partial class SoundEffectInstance : IDisposable
     {
-        private bool _isDisposed = false;
-        internal bool _isPooled = true;
-        internal bool _isXAct;
-        internal bool _isDynamic;
-        internal SoundEffect _effect;
-        private float _pan;
-        private float _volume;
-        private float _pitch;
-        private bool _isLooped;
+        public bool _isDisposed = false;
+        public bool _isPooled = true;
+        public bool _isXAct;
+        public bool _isDynamic;
+        public SoundEffect _effect;
+        public float _pan;
+        public float _volume;
+        public float _pitch;
+        public bool _isLooped;
 
         /// <summary>Enables or Disables whether the SoundEffectInstance should repeat after playback.</summary>
         /// <remarks>This value has no effect on an already playing sound.</remarks>
@@ -108,7 +108,7 @@ namespace Microsoft.Xna.Framework.Audio
         /// <summary>Indicates whether the object is disposed.</summary>
         public bool IsDisposed { get { return _isDisposed; } }
 
-        internal SoundEffectInstance()
+        public SoundEffectInstance()
         {
             _pan = 0.0f;
             _volume = 1.0f;

@@ -14,17 +14,17 @@ namespace Microsoft.Xna.Framework.Audio
     /// </remarks>
     public class Cue : IDisposable
     {
-        private readonly AudioEngine _engine;
-        private readonly string _name;
-        private readonly XactSound[] _sounds;
-        private readonly float[] _probs;
+        public readonly AudioEngine _engine;
+        public readonly string _name;
+        public readonly XactSound[] _sounds;
+        public readonly float[] _probs;
 
-        private readonly RpcVariable[] _variables;
+        public readonly RpcVariable[] _variables;
 
-        private XactSound _curSound;
+        public XactSound _curSound;
 
-        private bool _applied3D;
-        private bool _played;
+        public bool _applied3D;
+        public bool _played;
 
         /// <summary>Indicates whether or not the cue is currently paused.</summary>
         /// <remarks>IsPlaying and IsPaused both return true if a cue is paused while playing.</remarks>
@@ -152,10 +152,8 @@ namespace Microsoft.Xna.Framework.Audio
                 //TODO: Probabilities
                 var index = XactHelpers.Random.Next(_sounds.Length);
                 _curSound = _sounds[index];
-
-                var volume = UpdateRpcCurves();
-
-                _curSound.Play(volume, _engine);
+                UpdateRpcCurves();
+                _curSound.Play(_engine);
             }
 
             _played = true;
@@ -187,7 +185,7 @@ namespace Microsoft.Xna.Framework.Audio
             IsPrepared = false;
         }
 
-        private int FindVariable(string name)
+        public int FindVariable(string name)
         {
             // Do a simple linear search... which is fast
             // for as little variables as most cues have.
@@ -288,70 +286,12 @@ namespace Microsoft.Xna.Framework.Audio
                 return;
 
             _curSound.Update(dt);
-
             UpdateRpcCurves();
         }
 
-        private float UpdateRpcCurves()
+        public void UpdateRpcCurves()
         {
-            var volume = 1.0f;
-
-            // Evaluate the runtime parameter controls.
-            var rpcCurves = _curSound.RpcCurves;
-            if (rpcCurves.Length > 0)
-            {
-                var pitch = 0.0f;
-                var reverbMix = 1.0f;
-                float? filterFrequency = null;
-                float? filterQFactor = null;
-
-                for (var i = 0; i < rpcCurves.Length; i++)
-                {
-                    var rpcCurve = _engine.RpcCurves[rpcCurves[i]];
-
-                    // Some curves are driven by global variables and others by cue instance variables.
-                    float value;
-                    if (rpcCurve.IsGlobal)
-                        value = rpcCurve.Evaluate(_engine.GetGlobalVariable(rpcCurve.Variable));
-                    else
-                        value = rpcCurve.Evaluate(_variables[rpcCurve.Variable].Value);
-
-                    // Process the final curve value based on the parameter type it is.
-                    switch (rpcCurve.Parameter)
-                    {
-                        case RpcParameter.Volume:
-                            volume *= XactHelpers.ParseVolumeFromDecibels(value / 100.0f);
-                            break;
-
-                        case RpcParameter.Pitch:
-                            pitch += value / 1000.0f;
-                            break;
-
-                        case RpcParameter.ReverbSend:
-                            reverbMix *= XactHelpers.ParseVolumeFromDecibels(value / 100.0f);
-                            break;
-
-                        case RpcParameter.FilterFrequency:
-                            filterFrequency = value;
-                            break;
-
-                        case RpcParameter.FilterQFactor:
-                            filterQFactor = value;
-                            break;
-
-                        default:
-                            throw new ArgumentOutOfRangeException("rpcCurve.Parameter");
-                    }
-                }
-
-                pitch = MathHelper.Clamp(pitch, -1.0f, 1.0f);
-                if (volume < 0.0f)
-                    volume = 0.0f;
-
-                _curSound.UpdateState(_engine, volume, pitch, reverbMix, filterFrequency, filterQFactor);
-            }
-
-            return volume;
+            _curSound?.UpdateRpcCurves(_engine, _variables);
         }
         
         /// <summary>
@@ -372,7 +312,7 @@ namespace Microsoft.Xna.Framework.Audio
             Dispose(true);
         }
 
-        private void Dispose(bool disposing)
+        public void Dispose(bool disposing)
         {
             if (IsDisposed)
                 return;

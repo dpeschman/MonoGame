@@ -14,31 +14,31 @@ namespace Microsoft.Xna.Framework.Audio
     /// </summary> 
     public class AudioEngine : IDisposable
     {
-        private readonly AudioCategory[] _categories;
-        private readonly Dictionary<string, int> _categoryLookup = new Dictionary<string, int>();
+        public readonly AudioCategory[] _categories;
+        public readonly Dictionary<string, int> _categoryLookup = new Dictionary<string, int>();
 
-        private readonly RpcVariable[] _variables;
-        private readonly Dictionary<string, int> _variableLookup = new Dictionary<string, int>();
+        public readonly RpcVariable[] _variables;
+        public readonly Dictionary<string, int> _variableLookup = new Dictionary<string, int>();
 
-        private readonly RpcVariable[] _cueVariables;
+        public readonly RpcVariable[] _cueVariables;
 
-        private readonly Stopwatch _stopwatch;
-        private TimeSpan _lastUpdateTime;
+        public readonly Stopwatch _stopwatch;
+        public TimeSpan _lastUpdateTime;
 
-        private readonly ReverbSettings _reverbSettings;
-        private readonly RpcCurve[] _reverbCurves;
+        public readonly ReverbSettings _reverbSettings;
+        public readonly RpcCurve[] _reverbCurves;
 
-        internal List<Cue> ActiveCues = new List<Cue>();
+        public List<Cue> ActiveCues = new List<Cue>();
 
-        internal AudioCategory[] Categories { get { return _categories; } }
+        public AudioCategory[] Categories { get { return _categories; } }
 
-        internal Dictionary<string, WaveBank> Wavebanks = new Dictionary<string, WaveBank>();
+        public Dictionary<string, WaveBank> Wavebanks = new Dictionary<string, WaveBank>();
 
-        internal readonly RpcCurve[] RpcCurves;
+        public readonly RpcCurve[] RpcCurves;
 
-        internal readonly object UpdateLock = new object();
+        public readonly object UpdateLock = new object();
 
-        internal RpcVariable[] CreateCueVariables()
+        public RpcVariable[] CreateCueVariables()
         {
             var clone = new RpcVariable[_cueVariables.Length];
             Array.Copy(_cueVariables, clone, _cueVariables.Length);
@@ -50,7 +50,7 @@ namespace Microsoft.Xna.Framework.Audio
         /// </summary>
         public const int ContentVersion = 39;
 
-        internal static Stream OpenStream(string filePath, bool useMemoryStream = false)
+        public static Stream OpenStream(string filePath, bool useMemoryStream = false)
         {
             var stream = TitleContainer.OpenStream(filePath);
 
@@ -187,6 +187,7 @@ namespace Microsoft.Xna.Framework.Audio
                         curve.FileOffset = (uint)reader.BaseStream.Position;
 
                         var variable = variables[ reader.ReadUInt16() ];
+                        Console.WriteLine($"  rpc curve var {variable.Name} offset {curve.FileOffset:x}");
                         if (variable.IsGlobal)
                         {
                             curve.IsGlobal = true;
@@ -241,7 +242,7 @@ namespace Microsoft.Xna.Framework.Audio
             _stopwatch.Start();
         }
 
-        internal int GetRpcIndex(uint fileOffset)
+        public int GetRpcIndex(uint fileOffset)
         {
             for (var i = 0; i < RpcCurves.Length; i++)
             {
@@ -252,7 +253,7 @@ namespace Microsoft.Xna.Framework.Audio
             return -1;
         }
 
-        private static string[] ReadNullTerminatedStrings(uint count, BinaryReader reader)
+        public static string[] ReadNullTerminatedStrings(uint count, BinaryReader reader)
         {
             var ret = new string[count];
             
@@ -346,7 +347,7 @@ namespace Microsoft.Xna.Framework.Audio
                 return _variables[i].Value;
         }
 
-        internal float GetGlobalVariable(int index)
+        public float GetGlobalVariable(int index)
         {
             lock (UpdateLock)
                 return _variables[index].Value;
@@ -376,7 +377,7 @@ namespace Microsoft.Xna.Framework.Audio
         /// <summary>
         /// Is true if the AudioEngine has been disposed.
         /// </summary>
-        public bool IsDisposed { get; private set; }
+        public bool IsDisposed { get; set; }
 
         /// <summary>
         /// Disposes the AudioEngine.
@@ -393,7 +394,7 @@ namespace Microsoft.Xna.Framework.Audio
             Dispose(false);
         }
 
-        private void Dispose(bool disposing)
+        public void Dispose(bool disposing)
         {
             if (IsDisposed) 
                 return;

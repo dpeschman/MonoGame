@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Microsoft.Xna.Framework.Audio
 {
-	abstract class ClipEvent
+	public abstract class ClipEvent
     {
         protected XactClip _clip;
 

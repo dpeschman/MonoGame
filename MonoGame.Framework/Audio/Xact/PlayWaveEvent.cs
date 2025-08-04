@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Microsoft.Xna.Framework.Audio
 {
-    enum VariationType
+    public enum VariationType
     {
         Ordered,
         OrderedFromRandom,
@@ -16,40 +16,40 @@ namespace Microsoft.Xna.Framework.Audio
         Shuffle
     };
 
-    class PlayWaveEvent : ClipEvent
+    public class PlayWaveEvent : ClipEvent
     {
-        private readonly SoundBank _soundBank;
+        public readonly SoundBank _soundBank;
 
-        private readonly VariationType _variation;
+        public readonly VariationType _variation;
 
-        private readonly int _loopCount;
+        public readonly int _loopCount;
 
-        private readonly bool _newWaveOnLoop;
+        public readonly bool _newWaveOnLoop;
 
-        private readonly int[] _tracks;
-        private readonly int[] _waveBanks;
+        public readonly int[] _tracks;
+        public readonly int[] _waveBanks;
         
-        private readonly byte[] _weights;
-        private readonly int _totalWeights;
+        public readonly byte[] _weights;
+        public readonly int _totalWeights;
 
-        private float _trackVolume;
-        private float _trackPitch;
-        private float _trackFilterFrequency;
-        private float _trackFilterQFactor;
+        public float _trackVolume;
+        public float _trackPitch;
+        public float _trackFilterFrequency;
+        public float _trackFilterQFactor;
 
-        private float _clipVolume;
-        private float _clipPitch;
-        private float _clipReverbMix;
+        public float _clipVolume;
+        public float _clipPitch;
+        public float _clipReverbMix;
 
-        private readonly Vector4? _filterVar;
-        private readonly Vector2? _volumeVar;
-        private readonly Vector2? _pitchVar;
+        public readonly Vector4? _filterVar;
+        public readonly Vector2? _volumeVar;
+        public readonly Vector2? _pitchVar;
 
-        private int _wavIndex;
-        private int _loopIndex;
+        public int _wavIndex;
+        public int _loopIndex;
 
-        private SoundEffectInstance _wav;
-        private bool _streaming;
+        public SoundEffectInstance _wav;
+        public bool _streaming;
 
         public PlayWaveEvent(   XactClip clip, float timeStamp, float randomOffset, SoundBank soundBank,
                                 int[] waveBanks, int[] tracks, byte[] weights, int totalWeights,
@@ -98,7 +98,7 @@ namespace Microsoft.Xna.Framework.Audio
             Play(true);
         }
 
-        private void Play(bool pickNewWav)
+        public void Play(bool pickNewWav)
         {
             var trackCount = _tracks.Length;
 
@@ -254,7 +254,7 @@ namespace Microsoft.Xna.Framework.Audio
                 UpdateState();
         }
 
-        private void UpdateState()
+        public void UpdateState()
         {
             _wav.Volume = _trackVolume * _clipVolume;
             _wav.Pitch = _trackPitch + _clipPitch;

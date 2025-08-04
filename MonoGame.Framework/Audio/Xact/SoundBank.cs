@@ -67,16 +67,16 @@ namespace Microsoft.Xna.Framework.Audio
                 uint cueNameTableLen = reader.ReadUInt16();
                 reader.ReadUInt16(); //unkn
 
-                uint simpleCuesOffset = reader.ReadUInt32();
-                uint complexCuesOffset = reader.ReadUInt32(); //unkn
-                uint cueNamesOffset = reader.ReadUInt32();
-                reader.ReadUInt32(); //unkn
-                reader.ReadUInt32(); // variationTablesOffset
-                reader.ReadUInt32(); //unkn
-                uint waveBankNameTableOffset = reader.ReadUInt32();
-                reader.ReadUInt32(); // cueNameHashTableOffset
-                reader.ReadUInt32(); // cueNameHashValsOffset
-                reader.ReadUInt32(); // soundsOffset
+                uint simpleCuesOffset = reader.ReadUInt32(); //d67e 0000
+                uint complexCuesOffset = reader.ReadUInt32(); //unkn //3282 0000
+                uint cueNamesOffset = reader.ReadUInt32();//82a0 0000
+                reader.ReadUInt32(); //unkn //ffff ffff
+                reader.ReadUInt32(); // variationTablesOffset //cc8d 0000
+                reader.ReadUInt32(); //unkn //ffff ffff
+                uint waveBankNameTableOffset = reader.ReadUInt32(); //8a00 0000
+                reader.ReadUInt32(); // cueNameHashTableOffset f294 0000
+                reader.ReadUInt32(); // cueNameHashValsOffset //d697 0000
+                reader.ReadUInt32(); // soundsOffset //ca10 0000
                     
                 //name = System.Text.Encoding.UTF8.GetString(soundbankreader.ReadBytes(64),0,64).Replace("\0","");
 
@@ -99,6 +99,8 @@ namespace Microsoft.Xna.Framework.Audio
                     {
                         reader.ReadByte(); // flags
                         uint soundOffset = reader.ReadUInt32();
+                        var cueName = cueNames [i];
+                        Console.WriteLine($"Cue {cueName}: simple soundOffset {soundOffset:x}");
 
                         var oldPosition = stream.Position;
                         stream.Seek(soundOffset, SeekOrigin.Begin);
@@ -119,10 +121,12 @@ namespace Microsoft.Xna.Framework.Audio
                         byte flags = reader.ReadByte();
                         if (((flags >> 2) & 1) != 0)
                         {
-                            uint soundOffset = reader.ReadUInt32();
-                            reader.ReadUInt32(); //unkn
+                            uint soundOffset = reader.ReadUInt32(); //8a32 0000
+                            reader.ReadUInt32(); //unkn //1102 204e
 
                             var oldPosition = stream.Position;
+                            var cueName = cueNames [numSimpleCues + i];
+                            Console.WriteLine($"Cue {cueName}: complex soundOffset {soundOffset:x} flags {flags:x}");
                             stream.Seek(soundOffset, SeekOrigin.Begin);
                             XactSound sound = new XactSound(audioEngine, this, reader);
                             stream.Seek(oldPosition, SeekOrigin.Begin);
@@ -149,6 +153,8 @@ namespace Microsoft.Xna.Framework.Audio
                             float[] probs = new float[numEntries];
 
                             uint tableType = (variationflags >> 3) & 0x7;
+                            var cueName = cueNames [numSimpleCues + i];
+                            Console.WriteLine($"Cue {cueName}: complex variationTableOffset {variationTableOffset:x} variationFlags {variationflags:x} numEntries {numEntries} tableType {tableType}");
                             for (int j = 0; j < numEntries; j++)
                             {
                                 switch (tableType)
@@ -161,6 +167,7 @@ namespace Microsoft.Xna.Framework.Audio
                                             reader.ReadByte(); // weightMax
 
                                             cueSounds[j] = new XactSound(this, waveBankIndex, trackIndex);
+                                            Console.WriteLine($"  Wave trackIndex {trackIndex} waveBankIndex {waveBankIndex}");
                                             break;
                                         }
                                     case 1:
@@ -173,6 +180,7 @@ namespace Microsoft.Xna.Framework.Audio
                                             stream.Seek(soundOffset, SeekOrigin.Begin);
                                             cueSounds[j] = new XactSound(audioEngine, this, reader);
                                             stream.Seek(oldPosition, SeekOrigin.Begin);
+                                            Console.WriteLine($"  #1 soundOffset {soundOffset:x}");
                                             break;
                                         }
                                     case 3:
@@ -186,6 +194,7 @@ namespace Microsoft.Xna.Framework.Audio
                                             stream.Seek(soundOffset, SeekOrigin.Begin);
                                             cueSounds[j] = new XactSound(audioEngine, this, reader);
                                             stream.Seek(oldPosition, SeekOrigin.Begin);
+                                            Console.WriteLine($"  #3 soundOffset {soundOffset:x}");
                                             break;
                                         }
                                     case 4: //CompactWave
@@ -193,6 +202,7 @@ namespace Microsoft.Xna.Framework.Audio
                                             int trackIndex = reader.ReadUInt16();
                                             int waveBankIndex = reader.ReadByte();
                                             cueSounds[j] = new XactSound(this, waveBankIndex, trackIndex);
+                                            Console.WriteLine($"  CompactWave trackIndex {trackIndex} waveBankIndex {waveBankIndex}");
                                             break;
                                         }
                                     default:
