@@ -22,13 +22,9 @@ namespace Microsoft.Xna.Framework.Audio
         private SoundEffectInstance _wave;
         private bool _streaming;
 
-        private float _cueVolume = 1;
-        private float _cuePitch = 0;
-        private float _cueReverbMix = 0;
-        private float? _cueFilterFrequency;
-        private float? _cueFilterQFactor;
-
         internal readonly int[] RpcCurves;
+        internal readonly int[][] ClipRpcCurves;
+        private RpcValues _rpcValues;
         
         public XactSound(SoundBank soundBank, int waveBankIndex, int trackIndex)
         {
@@ -38,14 +34,17 @@ namespace Microsoft.Xna.Framework.Audio
             _waveBankIndex = waveBankIndex;
             _trackIndex = trackIndex;
             RpcCurves = new int[0];
+            ClipRpcCurves = new int[0][];
         }
 
         public XactSound(AudioEngine engine, SoundBank soundBank, BinaryReader soundReader)
         {
             _soundBank = soundBank;
-            
+
             var flags = soundReader.ReadByte();
             _complexSound = (flags & 0x1) != 0;
+            var hasSoundRPCs = (flags & 0x2) != 0;
+            var hasClipRPCs = (flags & 0x4) != 0;
             var hasRPCs = (flags & 0x0E) != 0;
             var hasDSPs = (flags & 0x10) != 0;
 
@@ -64,20 +63,33 @@ namespace Microsoft.Xna.Framework.Audio
                 _waveBankIndex = soundReader.ReadByte();
             }
 
-            if (!hasRPCs)
+            if (!hasRPCs) {
                 RpcCurves = new int[0];
+                ClipRpcCurves = new int[0][];
+            }
             else
             {
                 var current = soundReader.BaseStream.Position;
-
-                // This doesn't seem to be used... might have been there
-                // to allow for some future file format expansion.
                 var dataLength = soundReader.ReadUInt16();
 
-                var numPresets = soundReader.ReadByte();
-                RpcCurves = new int[numPresets];
-                for (var i = 0; i < numPresets; i++)
-                    RpcCurves[i] = engine.GetRpcIndex(soundReader.ReadUInt32());
+                if (_complexSound) {
+                    if (hasSoundRPCs) {
+                        RpcCurves = ReadRPCs(engine, soundReader);
+                    }
+                    else RpcCurves = new int[0];
+
+                    // Tracks within a sound can use different RPC curves
+                    if (hasClipRPCs) {
+                        ClipRpcCurves = new int[numClips][];
+                        for (int c = 0; c < numClips; c++) {
+                            ClipRpcCurves[c] = ReadRPCs(engine, soundReader);
+                        }
+                    }
+                    else ClipRpcCurves = new int[0][];
+                } else {
+                    RpcCurves = ReadRPCs(engine, soundReader);
+                    ClipRpcCurves = new int[0][];
+                }
 
                 // Just in case seek to the right spot.
                 soundReader.BaseStream.Seek(current + dataLength, SeekOrigin.Begin);
@@ -105,6 +117,14 @@ namespace Microsoft.Xna.Framework.Audio
             category.AddSound(this);
         }
 
+        private int[] ReadRPCs(AudioEngine engine, BinaryReader soundReader) {
+            var numRPCs = soundReader.ReadByte();
+            var rpcs = new int[numRPCs];
+            for (var r = 0; r < numRPCs; r++)
+                rpcs[r] = engine.GetRpcIndex(soundReader.ReadUInt32());
+            return rpcs;
+        }
+
         internal void SetFade(float fadeInTime, float fadeOutTime)
         {
             if (fadeInTime == 0.0f &&
@@ -122,9 +142,8 @@ namespace Microsoft.Xna.Framework.Audio
             }
         }
 
-        public void Play(float volume, AudioEngine engine)
+        public void Play(AudioEngine engine)
         {
-            _cueVolume = volume;
             var category = engine.Categories[_categoryID];
 
             var curInstances = category.GetPlayingInstanceCount();
@@ -140,15 +159,10 @@ namespace Microsoft.Xna.Framework.Audio
                 }
             }
 
-            float finalVolume = _volume * _cueVolume * category._volume[0];
-            float finalPitch = _pitch + _cuePitch;
-            float finalMix = _useReverb ? _cueReverbMix : 0.0f;
-
             if (_complexSound) 
             {
                 foreach (XactClip clip in _soundClips)
                 {
-                    clip.UpdateState(finalVolume, finalPitch, finalMix, _cueFilterFrequency, _cueFilterQFactor);
                     clip.Play();
                 }
             } 
@@ -162,8 +176,7 @@ namespace Microsoft.Xna.Framework.Audio
 						_wave._isXAct = false;					
                     _wave = null;
                 }
-
-                    _wave = _soundBank.GetSoundEffectInstance(_waveBankIndex, _trackIndex, out _streaming);
+                _wave = _soundBank.GetSoundEffectInstance(_waveBankIndex, _trackIndex, out _streaming);
 
                 if (_wave == null)
                 {
@@ -171,6 +184,10 @@ namespace Microsoft.Xna.Framework.Audio
                     // because we've reached the sound pool limits.
                     return;
                 }
+
+                float finalVolume = _volume * category._volume[0];
+                float finalPitch = _pitch + _rpcValues.pitch;
+                float finalMix = _useReverb ? _rpcValues.reverbMix : 0.0f;
 
                 _wave.Pitch = finalPitch;
                 _wave.Volume = finalVolume;
@@ -278,7 +295,7 @@ namespace Microsoft.Xna.Framework.Audio
         internal void UpdateCategoryVolume(float categoryVolume)
         {
             // The different volumes modulate each other.
-            var volume = _volume * _cueVolume * categoryVolume;
+            var volume = _volume * _rpcValues.volume * categoryVolume;
 
             if (_complexSound)
             {
@@ -289,31 +306,6 @@ namespace Microsoft.Xna.Framework.Audio
             {
                 if (_wave != null)
                     _wave.Volume = volume;
-            }
-        }
-
-        internal void UpdateState(AudioEngine engine, float volume, float pitch, float reverbMix, float? filterFrequency, float? filterQFactor)
-        {
-            _cueVolume = volume;
-            var finalVolume = _volume * _cueVolume * engine.Categories[_categoryID]._volume[0];
-
-            _cueReverbMix = reverbMix;
-            _cueFilterFrequency = filterFrequency;
-            _cueFilterQFactor = filterQFactor;
-
-            _cuePitch = pitch;
-            var finalPitch = _pitch + _cuePitch;
-
-            if (_complexSound)
-            {
-                foreach (var clip in _soundClips)
-                    clip.UpdateState(finalVolume, finalPitch, _useReverb ? _cueReverbMix : 0.0f, _cueFilterFrequency, _cueFilterQFactor);
-            }
-            else if (_wave != null)
-            {
-                _wave.PlatformSetReverbMix(_useReverb ? _cueReverbMix : 0.0f);
-                _wave.Pitch = finalPitch;
-                _wave.Volume = finalVolume;
             }
         }
 
@@ -385,6 +377,46 @@ namespace Microsoft.Xna.Framework.Audio
                 }
 
                 return _wave != null && _wave.State == SoundState.Paused;
+            }
+        }
+
+        // Evaluate the runtime parameter controls.
+        // 1. Calculate parameters for the sound
+        // 2. Calculate parameters for each clip
+        // 3. Mix 1 & 2 for each clip
+        // 4. Update clip state
+        public void UpdateRpcCurves(AudioEngine engine, RpcVariable[] cueVariables)
+        {
+            _rpcValues = new RpcValues(RpcCurves, cueVariables, engine);
+            if (_complexSound) {
+                for (int c = 0; c < _soundClips.Length; ++c) {
+                    var clipValues = _rpcValues;
+                    if (c < ClipRpcCurves.Length) {
+                        clipValues.Mix(
+                            new RpcValues(
+                                ClipRpcCurves[c], cueVariables, engine
+                            )
+                        );
+                    }
+                    clipValues.Clamp();
+                    _soundClips[c].UpdateState(
+                        clipValues.volume * _volume * engine.Categories[_categoryID]._volume[0],
+                        clipValues.pitch + _pitch,
+                        _useReverb ? clipValues.reverbMix : 0f,
+                        clipValues.filterFrequency,
+                        clipValues.filterQFactor
+                    );
+                }
+            }
+
+            _rpcValues.Clamp();
+            if (_wave != null)
+            {
+                var finalVolume = _volume * _rpcValues.volume * engine.Categories[_categoryID]._volume[0];
+                var finalPitch = _pitch + _rpcValues.pitch;
+                _wave.PlatformSetReverbMix(_useReverb ? _rpcValues.reverbMix : 0.0f);
+                _wave.Pitch = finalPitch;
+                _wave.Volume = finalVolume;
             }
         }
     }
